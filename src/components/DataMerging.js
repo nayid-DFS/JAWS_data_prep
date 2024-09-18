@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Button, Paper, Typography, Tabs, Tab, Box, List, ListItem, ListItemText, Modal, TextField, Dialog, AppBar, Toolbar, IconButton } from '@mui/material';
+import { Button, Paper, Typography, Tabs, Tab, Box, List, ListItem, ListItemText, Modal, TextField, Dialog, AppBar, Toolbar, IconButton, Checkbox, FormControlLabel, Accordion, AccordionSummary, AccordionDetails, Switch, FormGroup, Tooltip } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import PushPinIcon from '@mui/icons-material/PushPin';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-material.css';
@@ -17,6 +21,8 @@ const DataMerging = ({ files, preProcessedData, setMergedData, templateJoinColum
   const [fullScreenOpen, setFullScreenOpen] = useState(false);
   const [gridApi, setGridApi] = useState(null);
   const [fullScreenGridApi, setFullScreenGridApi] = useState(null);
+  const [pinnedColumns, setPinnedColumns] = useState([]);
+  const [hiddenColumns, setHiddenColumns] = useState([]);
 
   useEffect(() => {
     console.log('templateData:', templateData);
@@ -202,7 +208,10 @@ const DataMerging = ({ files, preProcessedData, setMergedData, templateJoinColum
     return `${numValue.toFixed(2)}%`;
   };
 
-  const createColumnDefs = (data, isPin) => {
+  const createColumnDefs = (data, isPin, pinnedCols, hiddenCols) => {
+    if (!data || data.length === 0) {
+      return [];
+    }
     return Object.keys(data[0]).map(key => {
       const isCalculated = key.endsWith('_%') || 
                            ['Highest', 'Second Highest', 'Third Highest'].some(label => key.startsWith(label)) || 
@@ -214,8 +223,11 @@ const DataMerging = ({ files, preProcessedData, setMergedData, templateJoinColum
         field: key,
         sortable: true,
         filter: true,
+        resizable: true,
         headerClass: isCalculated ? 'calculated-column' : '',
         editable: !isCalculated && key !== templateJoinColumn,
+        pinned: pinnedCols.includes(key) ? 'left' : null,
+        hide: hiddenCols.includes(key),
       };
 
       if (key.endsWith('PiN Sector')) {
@@ -253,8 +265,8 @@ const DataMerging = ({ files, preProcessedData, setMergedData, templateJoinColum
     });
   };
 
-  const pinColumns = mergedDataPreview.pin.length > 0 ? createColumnDefs(mergedDataPreview.pin, true) : [];
-  const severityColumns = mergedDataPreview.severity.length > 0 ? createColumnDefs(mergedDataPreview.severity, false) : [];
+  const pinColumns = mergedDataPreview.pin.length > 0 ? createColumnDefs(mergedDataPreview.pin, true, pinnedColumns, hiddenColumns) : [];
+  const severityColumns = mergedDataPreview.severity.length > 0 ? createColumnDefs(mergedDataPreview.severity, false, pinnedColumns, hiddenColumns) : [];
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
@@ -318,6 +330,112 @@ const DataMerging = ({ files, preProcessedData, setMergedData, templateJoinColum
     minWidth: 100, // Set a minimum width for columns
   }), []);
 
+  const handleColumnPinChange = (event, columnName) => {
+    const newPinnedColumns = event.target.checked
+      ? [...pinnedColumns, columnName]
+      : pinnedColumns.filter(col => col !== columnName);
+    setPinnedColumns(newPinnedColumns);
+    updateGridColumns(newPinnedColumns, hiddenColumns);
+  };
+
+  const handleColumnVisibilityChange = (event, columnName) => {
+    const newHiddenColumns = event.target.checked
+      ? hiddenColumns.filter(col => col !== columnName)
+      : [...hiddenColumns, columnName];
+    setHiddenColumns(newHiddenColumns);
+    updateGridColumns(pinnedColumns, newHiddenColumns);
+  };
+
+  const updateGridColumns = (pinned, hidden) => {
+    const newColumnDefs = createColumnDefs(mergedDataPreview.pin, true, pinned, hidden);
+    if (gridApi) {
+      gridApi.setColumnDefs(newColumnDefs);
+    }
+    if (fullScreenGridApi) {
+      fullScreenGridApi.setColumnDefs(newColumnDefs);
+    }
+  };
+
+  const ColumnControls = ({ columns }) => {
+    const [expanded, setExpanded] = useState(true);
+
+    const handleAccordionChange = (event, isExpanded) => {
+      setExpanded(isExpanded);
+    };
+
+    const categorizeColumns = (columns) => {
+      return columns.reduce((acc, column) => {
+        if (column.field.startsWith('PiN_') || column.field.startsWith('Severity_')) {
+          acc.Sector.push(column);
+        } else if (column.field.includes('Highest') || column.field.includes('Difference') || column.field === 'Total Flagged' || column.field === 'Row Flagged') {
+          acc.Calculated.push(column);
+        } else {
+          acc.Template.push(column);
+        }
+        return acc;
+      }, { Template: [], Sector: [], Calculated: [] });
+    };
+
+    const categorizedColumns = categorizeColumns(columns);
+
+    return (
+      <Accordion 
+        expanded={expanded} 
+        onChange={handleAccordionChange}
+        sx={{ mb: 2, boxShadow: 3, '&:before': { display: 'none' } }}
+      >
+        <AccordionSummary
+          expandIcon={<ExpandMoreIcon />}
+          aria-controls="panel-content"
+          id="panel-header"
+          sx={{ 
+            backgroundColor: 'primary.main', 
+            color: 'primary.contrastText',
+            '& .MuiAccordionSummary-expandIconWrapper': {
+              color: 'primary.contrastText',
+            },
+          }}
+        >
+          <Typography sx={{ display: 'flex', alignItems: 'center' }}>
+            <PushPinIcon sx={{ mr: 1 }} /> Column Controls
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+            {Object.entries(categorizedColumns).map(([category, cols]) => (
+              <Box key={category} sx={{ minWidth: '200px', flex: 1 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>{category}</Typography>
+                <FormGroup>
+                  {cols.map((column) => (
+                    <Box key={column.field} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                      <Typography variant="body2" sx={{ flex: 1, mr: 1 }}>{column.headerName}</Typography>
+                      <Tooltip title="Pin column">
+                        <Switch
+                          checked={pinnedColumns.includes(column.field)}
+                          onChange={(e) => handleColumnPinChange(e, column.field)}
+                          size="small"
+                        />
+                      </Tooltip>
+                      <Tooltip title="Toggle visibility">
+                        <Switch
+                          checked={!hiddenColumns.includes(column.field)}
+                          onChange={(e) => handleColumnVisibilityChange(e, column.field)}
+                          size="small"
+                          icon={<VisibilityOffIcon />}
+                          checkedIcon={<VisibilityIcon />}
+                        />
+                      </Tooltip>
+                    </Box>
+                  ))}
+                </FormGroup>
+              </Box>
+            ))}
+          </Box>
+        </AccordionDetails>
+      </Accordion>
+    );
+  };
+
   return (
     <Paper sx={{ padding: '20px', marginTop: '20px' }}>
       <Typography variant="h5" gutterBottom>
@@ -378,10 +496,11 @@ const DataMerging = ({ files, preProcessedData, setMergedData, templateJoinColum
             <Tab label={`Severity Data (${mergedDataPreview.severity.length} rows, ${severityColumns.length} columns)`} />
           </Tabs>
           <TabPanel value={tabValue} index={0}>
+            <ColumnControls columns={pinColumns} />
             <div className="ag-theme-material" style={{ height: '400px', width: '100%' }}>
               <AgGridReact
                 rowData={mergedDataPreview.pin}
-                columnDefs={pinColumns}
+                columnDefs={createColumnDefs(mergedDataPreview.pin, true, pinnedColumns, hiddenColumns)}
                 defaultColDef={defaultColDef}
                 pagination={true}
                 paginationPageSize={10}
@@ -394,10 +513,11 @@ const DataMerging = ({ files, preProcessedData, setMergedData, templateJoinColum
             </div>
           </TabPanel>
           <TabPanel value={tabValue} index={1}>
+            <ColumnControls columns={severityColumns} />
             <div className="ag-theme-material" style={{ height: '400px', width: '100%' }}>
               <AgGridReact
                 rowData={mergedDataPreview.severity}
-                columnDefs={severityColumns}
+                columnDefs={createColumnDefs(mergedDataPreview.severity, false, pinnedColumns, hiddenColumns)}
                 defaultColDef={defaultColDef}
                 pagination={true}
                 paginationPageSize={10}
@@ -486,19 +606,22 @@ const DataMerging = ({ files, preProcessedData, setMergedData, templateJoinColum
             </Typography>
           </Toolbar>
         </AppBar>
-        <Box sx={{ height: 'calc(100vh - 64px)', width: '100%' }}>
-          <AgGridReact
-            rowData={mergedDataPreview.pin}
-            columnDefs={pinColumns}
-            defaultColDef={defaultColDef}
-            pagination={true}
-            paginationPageSize={25}
-            domLayout='normal'
-            onGridReady={onFullScreenGridReady}
-            onCellValueChanged={handleCellValueChanged}
-            enableColResize={true}
-            colResizeDefault={'shift'}
-          />
+        <Box sx={{ height: 'calc(100vh - 64px)', width: '100%', display: 'flex', flexDirection: 'column' }}>
+          <ColumnControls columns={pinColumns} />
+          <Box sx={{ flexGrow: 1 }}>
+            <AgGridReact
+              rowData={mergedDataPreview.pin}
+              columnDefs={createColumnDefs(mergedDataPreview.pin, true, pinnedColumns, hiddenColumns)}
+              defaultColDef={defaultColDef}
+              pagination={true}
+              paginationPageSize={25}
+              domLayout='normal'
+              onGridReady={onFullScreenGridReady}
+              onCellValueChanged={handleCellValueChanged}
+              enableColResize={true}
+              colResizeDefault={'shift'}
+            />
+          </Box>
         </Box>
       </Dialog>
     </Paper>
