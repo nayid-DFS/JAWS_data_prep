@@ -23,6 +23,7 @@ const DataMerging = ({ files, preProcessedData, setMergedData, templateJoinColum
   const [fullScreenGridApi, setFullScreenGridApi] = useState(null);
   const [pinnedColumns, setPinnedColumns] = useState([]);
   const [hiddenColumns, setHiddenColumns] = useState([]);
+  const [columnControlsExpanded, setColumnControlsExpanded] = useState(false);
 
   useEffect(() => {
     console.log('templateData:', templateData);
@@ -270,6 +271,8 @@ const DataMerging = ({ files, preProcessedData, setMergedData, templateJoinColum
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
+    // Ensure the column controls remain in their current state when changing tabs
+    setColumnControlsExpanded(false);
   };
 
   const formulas = [
@@ -357,10 +360,8 @@ const DataMerging = ({ files, preProcessedData, setMergedData, templateJoinColum
   };
 
   const ColumnControls = ({ columns }) => {
-    const [expanded, setExpanded] = useState(true);
-
     const handleAccordionChange = (event, isExpanded) => {
-      setExpanded(isExpanded);
+      setColumnControlsExpanded(isExpanded);
     };
 
     const categorizeColumns = (columns) => {
@@ -380,7 +381,7 @@ const DataMerging = ({ files, preProcessedData, setMergedData, templateJoinColum
 
     return (
       <Accordion 
-        expanded={expanded} 
+        expanded={columnControlsExpanded} 
         onChange={handleAccordionChange}
         sx={{ mb: 2, boxShadow: 3, '&:before': { display: 'none' } }}
       >
@@ -452,7 +453,11 @@ const DataMerging = ({ files, preProcessedData, setMergedData, templateJoinColum
       <Button
         variant="outlined"
         color="primary"
-        onClick={() => setFormulasModalOpen(true)}
+        onClick={() => {
+          setFormulasModalOpen(true);
+          // Ensure the column controls remain in their current state when opening formulas
+          setColumnControlsExpanded(false);
+        }}
         sx={{ mb: 2, mr: 2 }}
       >
         View Formulas
