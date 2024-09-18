@@ -5,6 +5,8 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import PushPinIcon from '@mui/icons-material/PushPin';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import FullscreenIcon from '@mui/icons-material/Fullscreen';
+import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-material.css';
@@ -24,6 +26,7 @@ const DataMerging = ({ files, preProcessedData, setMergedData, templateJoinColum
   const [pinnedColumns, setPinnedColumns] = useState([]);
   const [hiddenColumns, setHiddenColumns] = useState([]);
   const [columnControlsExpanded, setColumnControlsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
     console.log('templateData:', templateData);
@@ -437,6 +440,10 @@ const DataMerging = ({ files, preProcessedData, setMergedData, templateJoinColum
     );
   };
 
+  const toggleExpand = () => {
+    setIsExpanded(prev => !prev);
+  };
+
   return (
     <Paper sx={{ padding: '20px', marginTop: '20px' }}>
       <Typography variant="h5" gutterBottom>
@@ -462,16 +469,6 @@ const DataMerging = ({ files, preProcessedData, setMergedData, templateJoinColum
       >
         View Formulas
       </Button>
-      {mergedDataPreview.pin.length > 0 && (
-        <Button
-          variant="outlined"
-          color="primary"
-          onClick={handleFullScreenOpen}
-          sx={{ mb: 2 }}
-        >
-          View Full Screen
-        </Button>
-      )}
       {error && (
         <Typography color="error" sx={{ mb: 2 }}>
           {error}
@@ -494,46 +491,59 @@ const DataMerging = ({ files, preProcessedData, setMergedData, templateJoinColum
           ))}
         </Box>
       )}
-      {mergedDataPreview.pin.length > 0 && (
-        <>
-          <Tabs value={tabValue} onChange={handleTabChange} sx={{ mb: 2 }}>
-            <Tab label={`PiN Data (${mergedDataPreview.pin.length} rows, ${pinColumns.length} columns)`} />
-            <Tab label={`Severity Data (${mergedDataPreview.severity.length} rows, ${severityColumns.length} columns)`} />
-          </Tabs>
-          <TabPanel value={tabValue} index={0}>
-            <ColumnControls columns={pinColumns} />
-            <div className="ag-theme-material" style={{ height: '400px', width: '100%' }}>
-              <AgGridReact
-                rowData={mergedDataPreview.pin}
-                columnDefs={createColumnDefs(mergedDataPreview.pin, true, pinnedColumns, hiddenColumns)}
-                defaultColDef={defaultColDef}
-                pagination={true}
-                paginationPageSize={10}
-                domLayout='normal'
-                onGridReady={onGridReady}
-                onCellValueChanged={handleCellValueChanged}
-                enableColResize={true}
-                colResizeDefault={'shift'}
-              />
-            </div>
-          </TabPanel>
-          <TabPanel value={tabValue} index={1}>
-            <ColumnControls columns={severityColumns} />
-            <div className="ag-theme-material" style={{ height: '400px', width: '100%' }}>
-              <AgGridReact
-                rowData={mergedDataPreview.severity}
-                columnDefs={createColumnDefs(mergedDataPreview.severity, false, pinnedColumns, hiddenColumns)}
-                defaultColDef={defaultColDef}
-                pagination={true}
-                paginationPageSize={10}
-                domLayout='normal'
-                enableColResize={true}
-                colResizeDefault={'shift'}
-              />
-            </div>
-          </TabPanel>
-        </>
-      )}
+      {/* Wrap the tables with the data-merging-container */}
+      <div className={`data-merging-container ${isExpanded ? 'expanded' : ''}`}>
+        {mergedDataPreview.pin.length > 0 && (
+          <>
+            {/* Expand/Exit Button */}
+            <IconButton className="expand-toggle-button" onClick={toggleExpand} aria-label={isExpanded ? "Exit Fullscreen" : "Enter Fullscreen"}>
+              {isExpanded ? <FullscreenExitIcon /> : <FullscreenIcon />}
+            </IconButton>
+
+            {/* Tabs for PiN and Severity Data */}
+            <Tabs value={tabValue} onChange={handleTabChange} sx={{ mb: 2 }}>
+              <Tab label={`PiN Data (${mergedDataPreview.pin.length} rows, ${pinColumns.length} columns)`} />
+              <Tab label={`Severity Data (${mergedDataPreview.severity.length} rows, ${severityColumns.length} columns)`} />
+            </Tabs>
+
+            {/* PiN Data Tab */}
+            <TabPanel value={tabValue} index={0}>
+              <ColumnControls columns={pinColumns} />
+              <div className="ag-theme-material" style={{ height: isExpanded ? '80vh' : '400px', width: '100%' }}>
+                <AgGridReact
+                  rowData={mergedDataPreview.pin}
+                  columnDefs={createColumnDefs(mergedDataPreview.pin, true, pinnedColumns, hiddenColumns)}
+                  defaultColDef={defaultColDef}
+                  pagination={true}
+                  paginationPageSize={isExpanded ? 100 : 10}
+                  domLayout='normal'
+                  onGridReady={onGridReady}
+                  onCellValueChanged={handleCellValueChanged}
+                  enableColResize={true}
+                  colResizeDefault={'shift'}
+                />
+              </div>
+            </TabPanel>
+
+            {/* Severity Data Tab */}
+            <TabPanel value={tabValue} index={1}>
+              <ColumnControls columns={severityColumns} />
+              <div className="ag-theme-material" style={{ height: isExpanded ? '80vh' : '400px', width: '100%' }}>
+                <AgGridReact
+                  rowData={mergedDataPreview.severity}
+                  columnDefs={createColumnDefs(mergedDataPreview.severity, false, pinnedColumns, hiddenColumns)}
+                  defaultColDef={defaultColDef}
+                  pagination={true}
+                  paginationPageSize={isExpanded ? 100 : 10}
+                  domLayout='normal'
+                  enableColResize={true}
+                  colResizeDefault={'shift'}
+                />
+              </div>
+            </TabPanel>
+          </>
+        )}
+      </div>
       <Modal
         open={formulasModalOpen}
         onClose={() => setFormulasModalOpen(false)}
@@ -619,7 +629,7 @@ const DataMerging = ({ files, preProcessedData, setMergedData, templateJoinColum
               columnDefs={createColumnDefs(mergedDataPreview.pin, true, pinnedColumns, hiddenColumns)}
               defaultColDef={defaultColDef}
               pagination={true}
-              paginationPageSize={25}
+              paginationPageSize={100}
               domLayout='normal'
               onGridReady={onFullScreenGridReady}
               onCellValueChanged={handleCellValueChanged}

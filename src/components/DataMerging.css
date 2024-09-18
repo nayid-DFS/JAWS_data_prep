@@ -69,3 +69,28 @@
 .ag-theme-material .ag-header-cell {
   overflow: visible;
 }
+
+/* Styles for the expanded table view */
+.data-merging-container.expanded {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: white;
+  z-index: 1000;
+  padding: 20px;
+  overflow: auto;
+}
+
+/* Style for the expand/exit button in expanded view */
+.data-merging-container.expanded .expand-toggle-button {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1001;
+}
+
+/* Optionally, adjust the z-index or other properties as needed */
+
+/* ... existing styles ... */
