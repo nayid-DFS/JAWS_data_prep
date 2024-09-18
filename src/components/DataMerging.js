@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button, Paper, Typography, Tabs, Tab, Box, List, ListItem, ListItemText, Modal, TextField, Dialog, AppBar, Toolbar, IconButton } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { AgGridReact } from 'ag-grid-react';
@@ -307,6 +307,17 @@ const DataMerging = ({ files, preProcessedData, setMergedData, templateJoinColum
     addAuditLog(`Cell value changed: ${event.colDef.field} for ${event.data[templateJoinColumn]}`);
   }, [mergedDataPreview, setMergedData, templateJoinColumn, addAuditLog]);
 
+  const defaultColDef = useMemo(() => ({
+    sortable: true,
+    filter: true,
+    resizable: true,
+    wrapHeaderText: true,
+    autoHeaderHeight: true,
+    headerClass: 'wrap-text-header',
+    suppressSizeToFit: true, // Prevent columns from auto-sizing
+    minWidth: 100, // Set a minimum width for columns
+  }), []);
+
   return (
     <Paper sx={{ padding: '20px', marginTop: '20px' }}>
       <Typography variant="h5" gutterBottom>
@@ -369,24 +380,30 @@ const DataMerging = ({ files, preProcessedData, setMergedData, templateJoinColum
           <TabPanel value={tabValue} index={0}>
             <div className="ag-theme-material" style={{ height: '400px', width: '100%' }}>
               <AgGridReact
-                columnDefs={pinColumns}
                 rowData={mergedDataPreview.pin}
+                columnDefs={pinColumns}
+                defaultColDef={defaultColDef}
                 pagination={true}
                 paginationPageSize={10}
                 domLayout='normal'
                 onGridReady={onGridReady}
                 onCellValueChanged={handleCellValueChanged}
+                enableColResize={true}
+                colResizeDefault={'shift'}
               />
             </div>
           </TabPanel>
           <TabPanel value={tabValue} index={1}>
             <div className="ag-theme-material" style={{ height: '400px', width: '100%' }}>
               <AgGridReact
-                columnDefs={severityColumns}
                 rowData={mergedDataPreview.severity}
+                columnDefs={severityColumns}
+                defaultColDef={defaultColDef}
                 pagination={true}
                 paginationPageSize={10}
                 domLayout='normal'
+                enableColResize={true}
+                colResizeDefault={'shift'}
               />
             </div>
           </TabPanel>
@@ -471,13 +488,16 @@ const DataMerging = ({ files, preProcessedData, setMergedData, templateJoinColum
         </AppBar>
         <Box sx={{ height: 'calc(100vh - 64px)', width: '100%' }}>
           <AgGridReact
-            columnDefs={pinColumns}
             rowData={mergedDataPreview.pin}
+            columnDefs={pinColumns}
+            defaultColDef={defaultColDef}
             pagination={true}
             paginationPageSize={25}
             domLayout='normal'
             onGridReady={onFullScreenGridReady}
             onCellValueChanged={handleCellValueChanged}
+            enableColResize={true}
+            colResizeDefault={'shift'}
           />
         </Box>
       </Dialog>

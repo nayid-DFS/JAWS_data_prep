@@ -15,3 +15,57 @@
 .calculated-column .ag-header-cell-text {
   color: #000000; /* Black text */
 }
+
+/* ... existing styles ... */
+
+.wrap-text-header .ag-header-cell-label {
+  white-space: normal !important;
+  line-height: 1.2;
+}
+
+.wrap-text-header .ag-header-cell-label .ag-header-cell-text {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal !important;
+}
+
+.ag-header-cell {
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.ag-header-cell-label {
+  justify-content: flex-start; /* Change from center to flex-start */
+}
+
+.ag-header-cell-text {
+  width: 100%;
+  text-align: left; /* Change from center to left */
+}
+
+/* Add this new style to ensure left alignment */
+.ag-header-cell-comp-wrapper {
+  margin-left: 0 !important;
+}
+
+/* Style for the column resize handle */
+.ag-theme-material .ag-header-cell-resize::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: rgba(0, 0, 0, 0.1);
+  cursor: col-resize;
+}
+
+/* Highlight the resize handle on hover */
+.ag-theme-material .ag-header-cell-resize:hover::after {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+/* Ensure the resize handle is visible */
+.ag-theme-material .ag-header-cell {
+  overflow: visible;
+}
