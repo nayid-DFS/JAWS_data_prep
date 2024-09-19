@@ -27,9 +27,7 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Container maxWidth="lg">
-        <Typography variant="h3" component="h1" gutterBottom>
-          Data Analysis Web Application
-        </Typography>
+        <h1>JAWS - Data Analysis</h1>
         <Button 
           variant="outlined" 
           onClick={() => setAuditLogOpen(true)} 
