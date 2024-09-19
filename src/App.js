@@ -28,13 +28,11 @@ function App() {
       <CssBaseline />
       <Container maxWidth="lg">
         <h1>JAWS - Data Analysis</h1>
-        <Button 
-          variant="outlined" 
-          onClick={() => setAuditLogOpen(true)} 
-          style={{ marginBottom: '20px' }}
-        >
-          Audit Log
-        </Button>
+        
+        <Typography variant="h5" gutterBottom>
+          Step 1: Upload Your Data Files
+        </Typography>
+        
         <FileUpload 
           setUploadedFiles={setUploadedFiles} 
           preProcessedData={preProcessedData} 
@@ -46,6 +44,11 @@ function App() {
           setTemplateData={setTemplateData}
           addAuditLog={addAuditLog}
         />
+
+        <Typography variant="h5" gutterBottom style={{ marginTop: '40px' }}>
+          Step 2: Merge Your Data
+        </Typography>
+        
         <DataMerging 
           files={uploadedFiles} 
           preProcessedData={preProcessedData} 
@@ -54,6 +57,19 @@ function App() {
           templateData={templateData}
           addAuditLog={addAuditLog}
         />
+        
+        <Typography variant="h5" gutterBottom style={{ marginTop: '40px' }}>
+          Step 3: Review Audit Logs
+        </Typography>
+        
+        <Button 
+          variant="outlined" 
+          onClick={() => setAuditLogOpen(true)} 
+          style={{ marginTop: '10px' }}
+        >
+          Audit Log
+        </Button>
+        
         <AuditLog 
           open={auditLogOpen} 
           onClose={() => setAuditLogOpen(false)} 
