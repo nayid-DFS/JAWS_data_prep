@@ -192,6 +192,17 @@ const DataMerging = ({ files, preProcessedData, setMergedData, templateJoinColum
       console.log('Debug: Second Highest PiN Sector', pinValues[1]?.sector);
       console.log('Debug: Third Highest PiN Sector', pinValues[2]?.sector);
 
+      // Add Preliminary PiN and Final PiN columns
+      // Ensure these are added only once
+      if (!enhancedRow.hasOwnProperty('Preliminary PiN')) {
+        enhancedRow['Preliminary PiN'] = enhancedRow['Highest PiN'];
+      }
+      if (!enhancedRow.hasOwnProperty('Final PiN')) {
+        enhancedRow['Final PiN'] = enhancedRow['Preliminary PiN'];
+      }
+
+      console.log('Debug: Preliminary and Final PiN added');
+      
       return enhancedRow;
     });
 
@@ -239,7 +250,11 @@ const DataMerging = ({ files, preProcessedData, setMergedData, templateJoinColum
           hide: hiddenCols.includes(key),
         };
 
-        if (key.endsWith('PiN Sector')) {
+        if (key === 'Preliminary PiN' || key === 'Final PiN') {
+          columnDef.headerClass = 'yellow-header';
+          // {{ edit_1 }} Add valueFormatter to format numbers with proper separators
+          columnDef.valueFormatter = (params) => formatNumber(params.value);
+        } else if (key.endsWith('PiN Sector')) {
           columnDef.valueGetter = (params) => params.data[key];
         } else if (key === 'Difference over threshold' || 
                    key === 'Difference over threshold 3rd' || 
@@ -273,7 +288,7 @@ const DataMerging = ({ files, preProcessedData, setMergedData, templateJoinColum
         return columnDef;
       });
 
-    // Add the "Resolve" column
+    // Add the "Resolve" and "Rationale" columns
     baseColumns.push({
       headerName: 'Resolve',
       field: 'Resolve',
@@ -294,7 +309,6 @@ const DataMerging = ({ files, preProcessedData, setMergedData, templateJoinColum
       },
     });
 
-    // Add the "Rationale" column
     baseColumns.push({
       headerName: 'Rationale',
       field: 'Rationale',

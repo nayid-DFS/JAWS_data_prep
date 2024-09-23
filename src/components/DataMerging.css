@@ -121,3 +121,8 @@
 .ag-theme-material .ag-header-cell-rationale {
   background-color: #f0f0f0;
 }
+
+/* Yellow header for Preliminary PiN and Final PiN columns */
+.yellow-header {
+  background-color: yellow !important;
+}
