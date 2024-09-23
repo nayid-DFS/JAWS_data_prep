@@ -94,3 +94,30 @@
 /* Optionally, adjust the z-index or other properties as needed */
 
 /* ... existing styles ... */
+
+/* Style for the resolve checkbox to appear as a simple square */
+.resolve-checkbox {
+  border: 2px solid #000; /* {{ edit_1 }} Changed to single solid border for a simpler thick box */
+  border-radius: 0; /* {{ edit_2 }} Removed border-radius for a perfect square appearance */
+  width: 24px;
+  height: 24px;
+  background-color: #fff;
+  box-shadow: none; /* {{ edit_3 }} Removed any box-shadow to eliminate inner square/circle */
+}
+
+/* Optional: Simplify the checked state appearance */
+.resolve-checkbox.Mui-checked {
+  background-color: #4caf50; /* Green background when checked */
+  border-color: #4caf50; /* Match border color with background */
+  box-shadow: none; /* {{ edit_4 }} Ensure no shadow appears when checked */
+}
+
+/* Style for the Rationale column */
+.ag-theme-material .ag-cell.ag-cell-rationale {
+  padding-left: 10px;
+}
+
+/* Ensure the Rationale header is styled appropriately */
+.ag-theme-material .ag-header-cell-rationale {
+  background-color: #f0f0f0;
+}

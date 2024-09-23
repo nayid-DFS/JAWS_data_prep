@@ -27,6 +27,9 @@ const DataMerging = ({ files, preProcessedData, setMergedData, templateJoinColum
   const [hiddenColumns, setHiddenColumns] = useState([]);
   const [columnControlsExpanded, setColumnControlsExpanded] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [rationaleModalOpen, setRationaleModalOpen] = useState(false);
+  const [selectedRow, setSelectedRow] = useState(null);
+  const [rationale, setRationale] = useState('');
 
   useEffect(() => {
     console.log('templateData:', templateData);
@@ -216,57 +219,92 @@ const DataMerging = ({ files, preProcessedData, setMergedData, templateJoinColum
     if (!data || data.length === 0) {
       return [];
     }
-    return Object.keys(data[0]).map(key => {
-      const isCalculated = key.endsWith('_%') || 
-                           ['Highest', 'Second Highest', 'Third Highest'].some(label => key.startsWith(label)) || 
-                           key.includes('Difference') ||
-                           key === 'Total Flagged' ||
-                           key === 'Row Flagged';
-      const columnDef = {
-        headerName: key.trim(),
-        field: key,
-        sortable: true,
-        filter: true,
-        resizable: true,
-        headerClass: isCalculated ? 'calculated-column' : '',
-        editable: !isCalculated && key !== templateJoinColumn,
-        pinned: pinnedCols.includes(key) ? 'left' : null,
-        hide: hiddenCols.includes(key),
-      };
+    const baseColumns = Object.keys(data[0])
+      .filter(key => key !== 'Resolve' && key !== 'Rationale') // Exclude 'Resolve' and 'Rationale' to prevent duplicate columns
+      .map(key => {
+        const isCalculated = key.endsWith('_%') || 
+                             ['Highest', 'Second Highest', 'Third Highest'].some(label => key.startsWith(label)) || 
+                             key.includes('Difference') ||
+                             key === 'Total Flagged' ||
+                             key === 'Row Flagged';
+        const columnDef = {
+          headerName: key.trim(),
+          field: key,
+          sortable: true,
+          filter: true,
+          resizable: true,
+          headerClass: isCalculated ? 'calculated-column' : '',
+          editable: !isCalculated && key !== templateJoinColumn,
+          pinned: pinnedCols.includes(key) ? 'left' : null,
+          hide: hiddenCols.includes(key),
+        };
 
-      if (key.endsWith('PiN Sector')) {
-        columnDef.valueGetter = (params) => params.data[key];
-      } else if (key === 'Difference over threshold' || 
-                 key === 'Difference over threshold 3rd' || 
-                 key === 'Row Flagged') {
-        columnDef.cellRenderer = (params) => {
-          return params.value === true ? 'Flagged' : '';
-        };
-        columnDef.cellClass = (params) => {
-          return params.value === true ? 'flagged-cell' : '';
-        };
-      } else {
-        columnDef.valueFormatter = (params) => {
-          if (params.value === null || params.value === undefined) return '';
-          if (key === ' Population ' || 
-              (key.startsWith('PiN_') && !key.includes('%')) || 
-              key === 'Difference Highest and 2nd Highest' ||
-              key === 'Difference Highest and 3rd Highest' ||
-              key === 'Total Flagged') {
-            return formatNumber(params.value);
-          } else if (key.endsWith('_%') || 
-                     key.endsWith('PiN %') || 
-                     (key.startsWith('PiN_') && key.includes('%')) || 
-                     key === '% Difference Highest and 2nd Highest' ||
-                     key === '% Difference Highest and 3rd Highest') {
-            return formatPercentage(params.value);
-          }
-          return params.value;
-        };
-      }
+        if (key.endsWith('PiN Sector')) {
+          columnDef.valueGetter = (params) => params.data[key];
+        } else if (key === 'Difference over threshold' || 
+                   key === 'Difference over threshold 3rd' || 
+                   key === 'Row Flagged') {
+          columnDef.cellRenderer = (params) => {
+            return params.value === true ? 'Flagged' : '';
+          };
+          columnDef.cellClass = (params) => {
+            return params.value === true ? 'flagged-cell' : '';
+          };
+        } else {
+          columnDef.valueFormatter = (params) => {
+            if (params.value === null || params.value === undefined) return '';
+            if (key === ' Population ' || 
+                (key.startsWith('PiN_') && !key.includes('%')) || 
+                key === 'Difference Highest and 2nd Highest' ||
+                key === 'Difference Highest and 3rd Highest' ||
+                key === 'Total Flagged') {
+              return formatNumber(params.value);
+            } else if (key.endsWith('_%') || 
+                       key.endsWith('PiN %') || 
+                       (key.startsWith('PiN_') && key.includes('%')) || 
+                       key === '% Difference Highest and 2nd Highest' ||
+                       key === '% Difference Highest and 3rd Highest') {
+              return formatPercentage(params.value);
+            }
+            return params.value;
+          };
+        }
 
-      return columnDef;
+        return columnDef;
+      });
+
+    // Add the "Resolve" column
+    baseColumns.push({
+      headerName: 'Resolve',
+      field: 'Resolve',
+      sortable: false,
+      filter: false,
+      resizable: false,
+      width: 100,
+      cellRendererFramework: (params) => {
+        if (params.data['Row Flagged']) {
+          return (
+            <Checkbox
+              className="resolve-checkbox"
+              onChange={() => handleResolveClick(params.data)}
+            />
+          );
+        }
+        return null;
+      },
     });
+
+    // Add the "Rationale" column
+    baseColumns.push({
+      headerName: 'Rationale',
+      field: 'Rationale',
+      sortable: false,
+      filter: false,
+      editable: false,
+      flex: 1,
+    });
+
+    return baseColumns;
   };
 
   const pinColumns = mergedDataPreview.pin.length > 0 ? createColumnDefs(mergedDataPreview.pin, true, pinnedColumns, hiddenColumns) : [];
@@ -442,6 +480,35 @@ const DataMerging = ({ files, preProcessedData, setMergedData, templateJoinColum
 
   const toggleExpand = () => {
     setIsExpanded(prev => !prev);
+  };
+
+  const handleResolveClick = (rowData) => {
+    setSelectedRow(rowData);
+    setRationaleModalOpen(true);
+  };
+
+  const handleRationaleSubmit = () => {
+    if (selectedRow) {
+      // Update the rationale in the row
+      const updatedData = { ...mergedDataPreview };
+      updatedData.pin = updatedData.pin.map(row => 
+        row[templateJoinColumn] === selectedRow[templateJoinColumn]
+          ? { ...row, Rationale: rationale, 'Row Flagged': false }
+          : row
+      );
+      setMergedDataPreview(updatedData);
+      setMergedData(updatedData);
+      addAuditLog(`Flag resolved for ${selectedRow[templateJoinColumn]} with rationale: ${rationale}`);
+      setRationale('');
+      setSelectedRow(null);
+      setRationaleModalOpen(false);
+    }
+  };
+
+  const handleRationaleCancel = () => {
+    setRationale('');
+    setSelectedRow(null);
+    setRationaleModalOpen(false);
   };
 
   return (
@@ -639,6 +706,47 @@ const DataMerging = ({ files, preProcessedData, setMergedData, templateJoinColum
           </Box>
         </Box>
       </Dialog>
+
+      {/* Rationale Modal */}
+      <Modal
+        open={rationaleModalOpen}
+        onClose={handleRationaleCancel}
+        aria-labelledby="rationale-modal-title"
+        aria-describedby="rationale-modal-description"
+      >
+        <Box sx={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 400,
+          bgcolor: 'background.paper',
+          border: '2px solid #000',
+          boxShadow: 24,
+          p: 4,
+        }}>
+          <Typography id="rationale-modal-title" variant="h6" component="h2">
+            Resolve Flag
+          </Typography>
+          <TextField
+            label="Reason for Resolving Flag"
+            multiline
+            rows={4}
+            value={rationale}
+            onChange={(e) => setRationale(e.target.value)}
+            fullWidth
+            sx={{ mt: 2, mb: 2 }}
+          />
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+            <Button variant="contained" color="primary" onClick={handleRationaleSubmit}>
+              Submit
+            </Button>
+            <Button variant="outlined" color="secondary" onClick={handleRationaleCancel}>
+              Cancel
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
     </Paper>
   );
 };
